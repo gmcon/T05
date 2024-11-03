@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulación del Campo Magnético</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: black; 
+            color: white; 
+            display: flex; 
+            justify-content: space-around; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+        #controls { 
+            position: absolute; 
+            top: 20px; 
+            left: 20px; 
+            background: rgba(0, 0, 0, 0.5); 
+            padding: 10px; 
+            border-radius: 8px; 
+        }
+        button, input[type="range"] { 
+            margin-right: 10px; 
+            display: block; 
+            margin-bottom: 10px; 
+        }
+        #canvas-container { 
+            display: inline-block; 
+        }
+        #chart { 
+            display: inline-block; 
+            background-color: white; 
+            padding: 10px; 
+            border-radius: 8px; 
+        }
+        #chart svg { 
+            display: block; 
+            margin: auto; 
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <label for="intensity">Intensidad: </label>
+        <input type="range" id="intensity" min="1" max="10" step="0.1" value="5">
+
+        <label for="polaridad">Polaridad: </label>
+        <button id="changePolaridad">Cambiar Polaridad</button>
+
+        <label for="angulo">Ángulo: </label>
+        <input type="range" id="angulo" min="0" max="360" step="1" value="0">
+    </div>
+
+    <!-- Contenedor para el canvas de Three.js -->
+    <div id="canvas-container"></div>
+
+    <!-- Contenedor para el gráfico de D3.js -->
+    <div id="chart"></div>
+
+    <!-- Cargar las bibliotecas Three.js y D3.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+
+    <!-- Script para Three.js (Simulación del campo magnético) -->
+    <script src="script1.js"></script>
+
+    <!-- Script para D3.js (Gráfico interactivo) -->
+    <script src="script2.js"></script>
+</body>
+</html>

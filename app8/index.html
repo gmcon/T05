@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Esfera Giratoria</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+      #sliderContainer {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 100;
+        color: white;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Contenedor para los sliders -->
+    <div id="sliderContainer">
+      <label for="lightIntensity">Light Intensity</label>
+      <input type="range" id="lightIntensity" min="0" max="1" step="0.01" value="0.5">
+
+      <label for="rotationSpeed">Rotation Speed</label>
+      <input type="range" id="rotationSpeed" min="0" max="0.2" step="0.01" value="0.05">
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

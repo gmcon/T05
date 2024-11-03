@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Texto 3D en Three.js</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+        .ui-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+        }
+        .ui-controls input, .ui-controls button {
+            padding: 10px;
+            margin: 5px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Controles para cambiar el texto y modificar la cantidad de texto -->
+    <div class="ui-controls">
+        <input type="text" id="textInput" placeholder="Escribe algo" />
+        <button id="increaseText">Aumentar texto</button>
+        <button id="decreaseText">Disminuir texto</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/geometries/TextGeometry.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/FontLoader.js"></script>
+
+    <!-- Enlace al archivo JavaScript separado -->
+    <script src="script.js"></script>
+</body>
+</html>

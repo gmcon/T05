@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Péndulo con Pájaros</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #sliderContainer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+        }
+        #slider {
+            width: 200px;
+        }
+        #kills {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 20px;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+<div id="sliderContainer">
+    <input type="range" id="slider" min="-1" max="1" step="0.01" value="0">
+</div>
+
+<div id="kills">Kills: 0</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="pendulo.js"></script>
+
+</body>
+</html>

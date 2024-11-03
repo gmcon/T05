@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Torre de Cubos con Pelota de Bowling, Cotillón y Victory</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+    #victoryMessage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 80px;
+      color: #ffcc00;
+      font-family: Arial, sans-serif;
+      text-shadow: 2px 2px 5px black;
+      display: none; /* Oculto hasta que se muestre */
+    }
+  </style>
+</head>
+<body>
+  <div id="victoryMessage">VICTORY!</div>  <!-- Mensaje de victoria -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <script>
+    // Crear la escena
+    const scene = new THREE.Scene();
+
+    // Crear la cámara
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 5, 15);
+
+    // Crear el renderizador
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Agregar los controles de órbita
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2;
+
+    // Agregar luz
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(5, 10, 5).normalize();
+    scene.add(light);
+
+    // Crear el mundo físico
+    const world = new CANNON.World();
+    world.gravity.set(0, -9.82, 0);  // Gravedad similar a la Tierra
+    world.solver.iterations = 20; // Mayor precisión en la simulación
+
+    // Crear el suelo físico
+    const groundMaterial = new CANNON.Material();
+    const groundBody = new CANNON.Body({
+      mass: 0, // Suelo inmóvil
+      shape: new CANNON.Plane(),
+      material: groundMaterial,
+    });
+    groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // Hacer que el plano sea horizontal
+    groundBody.position.set(0, -5, 0); // Alinear el plano con el plano visual
+    world.addBody(groundBody);
+
+    // Crear el suelo visual
+    const planeGeometry = new THREE.PlaneGeometry(20, 20);
+    const planeMaterial = new THREE.MeshPhongMaterial({ color: 0x808080, side: THREE.DoubleSide });
+    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.y = -5;
+    scene.add(plane);
+
+    // Material para los cubos con fricción alta
+    const cubeMaterial = new CANNON.Material();
+    const contactMaterial = new CANNON.ContactMaterial(cubeMaterial, groundMaterial, {
+      friction: 0.9, // Aumenta la fricción
+      restitution: 0.1, // Reduce el rebote
+    });
+    world.addContactMaterial(contactMaterial);
+
+    // Crear los cubos apilados desde el suelo
+    const cubes = [];
+    const cubeBodies = [];
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const colors = [0x00ff00, 0xff0000, 0x0000ff, 0xffff00, 0x00ffff, 0xff00ff];
+
+    for (let i = 0; i < 10; i++) {
+      const material = new THREE.MeshPhongMaterial({ color: colors[i % colors.length] });
+      const cube = new THREE.Mesh(geometry, material);
+      cube.position.set(0, -4.5 + i, 0); // Apilamos los cubos desde el suelo visualmente
+      cubes.push(cube);
+      scene.add(cube);
+
+      // Cuerpo físico para cada cubo, comenzando desde el suelo
+      const cubeBody = new CANNON.Body({
+        mass: 1, // Masa del cubo (afectada por la gravedad)
+        shape: new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5)),
+        position: new CANNON.Vec3(0, -4.5 + i, 0), // Posicionar el cuerpo físico desde el suelo
+        material: cubeMaterial, // Usamos el material de fricción alta
+      });
+
+      cubeBody.allowSleep = true;
+      cubeBody.sleepSpeedLimit = 0.1;
+      cubeBody.sleepTimeLimit = 1;
+
+      cubeBodies.push(cubeBody);
+      world.addBody(cubeBody);
+    }
+
+    // Variables para la pelota de bowling
+    let bowlingBall;
+    let bowlingBallBody;
+    let confettiParticles = [];  // Cotillón (partículas)
+    let victoryShown = false;  // Para mostrar el mensaje de victoria solo una vez
+
+    // Función para crear la pelota de bowling
+    function createBowlingBall() {
+      const sphereRadius = 1.5;  // Más grande
+      const sphereGeometry = new THREE.SphereGeometry(sphereRadius, 32, 32);
+      const sphereMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+      bowlingBall = new THREE.Mesh(sphereGeometry, sphereMaterial);
+      bowlingBall.position.set(0, -3, -15);  // Posición inicial de la pelota
+      scene.add(bowlingBall);
+
+      // Crear el cuerpo físico de la pelota
+      bowlingBallBody = new CANNON.Body({
+        mass: 10,  // Masa más alta para mayor empuje
+        shape: new CANNON.Sphere(sphereRadius),
+        position: new CANNON.Vec3(0, -3, -15),  // Posición inicial del cuerpo físico
+      });
+
+      world.addBody(bowlingBallBody);
+
+      // Aplicar impulso inicial para velocidad media
+      const force = new CANNON.Vec3(0, 0, 120);  // Aumentar un poco la velocidad
+      bowlingBallBody.applyImpulse(force, bowlingBallBody.position);
+    }
+
+    // Función para crear cotillón (partículas de confeti)
+    function createConfetti() {
+      for (let i = 0; i < 200; i++) {  // Aumentamos el número de partículas
+        const particleGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const particleMaterial = new THREE.MeshPhongMaterial({ color: Math.random() * 0xffffff });
+        const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+        particle.position.set(0, 0, 0);  // Comienza en el centro de la torre
+        scene.add(particle);
+
+        // Generar una dirección y velocidad aleatoria para esparcir las partículas
+        const velocity = new THREE.Vector3(
+          (Math.random() - 0.5) * 10,  // Aleatorio en X
+          Math.random() * 8,           // Aleatorio en Y (positivo para subir)
+          (Math.random() - 0.5) * 10   // Aleatorio en Z
+        );
+
+        confettiParticles.push({ mesh: particle, velocity: velocity });
+      }
+    }
+
+    // Mostrar el mensaje de "Victory"
+    function showVictoryMessage() {
+      const victoryMessage = document.getElementById('victoryMessage');
+      victoryMessage.style.display = 'block';  // Mostrar el mensaje
+    }
+
+    // Animación
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Actualizar el mundo físico
+      world.step(1 / 60);
+
+      // Sincronizar los cubos visuales con los cuerpos físicos
+      for (let i = 0; i < cubes.length; i++) {
+        cubes[i].position.copy(cubeBodies[i].position);
+        cubes[i].quaternion.copy(cubeBodies[i].quaternion);
+      }
+
+      // Sincronizar la pelota de bowling con su cuerpo físico
+      if (bowlingBall) {
+        bowlingBall.position.copy(bowlingBallBody.position);
+        bowlingBall.quaternion.copy(bowlingBallBody.quaternion);
+
+        // Detectar colisiones entre la pelota y los cubos
+        for (let i = 0; i < cubeBodies.length; i++) {
+          const distance = bowlingBallBody.position.distanceTo(cubeBodies[i].position);
+          if (distance < 2 && !victoryShown) {  // Si está lo suficientemente cerca de los cubos
+            createConfetti();  // Crear cotillón
+            showVictoryMessage();  // Mostrar el mensaje de victoria
+            victoryShown = true;  // Evitar que se muestre más de una vez
+            break;
+          }
+        }
+      }
+
+      // Actualizar el movimiento de las partículas de cotillón
+      confettiParticles.forEach(particle => {
+        particle.mesh.position.add(particle.velocity);  // Aplicar la velocidad
+        particle.velocity.y -= 0.01;  // Aplicar gravedad suave para que caigan lentamente
+      });
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Crear la pelota de bowling al hacer clic
+    window.addEventListener('click', () => {
+      if (!bowlingBall) { // Solo crear una pelota de bowling
+        createBowlingBall();
+      }
+    });
+
+    // Ajustar la ventana al redimensionar
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

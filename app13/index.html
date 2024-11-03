@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>THREE.js - Cubo Interactivo</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        select,
+        input[type="range"] {
+            width: 100%;
+            margin-top: 10px;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+        label {
+            font-size: 14px;
+            color: #333;
+            margin-top: 10px;
+            display: block;
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1;
+            color: white;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        #colorInfo {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1;
+            color: white;
+            text-align: center;
+            font-size: 16px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .bar {
+            width: 100%;
+            height: 20px;
+            background-color: #333;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .barFill {
+            height: 100%;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <div id="patternTitle">Patrón: Colores Aleatorios</div>
+        <div id="patternDescription">Genera colores completamente aleatorios.</div>
+    </div>
+    <div id="controls">
+        <label for="colorPattern">Patrón de Colores:</label>
+        <select id="colorPattern">
+            <option value="random" selected>Colores Aleatorios</option>
+            <option value="hsl">Colores HSL</option>
+            <option value="gradient">Gradiente Cíclico</option>
+            <option value="tone">Colores por Tonos</option>
+            <option value="pastel">Colores Pastel</option>
+        </select>
+
+        <label for="timeControl">Velocidad del Cambio de Color:</label>
+        <input id="timeControl" type="range" min="0" max="255" value="10" />
+    </div>
+
+    <div id="colorInfo">
+        <div id="colorRGBA">RGBA = rgba(0, 0, 0, 1)</div>
+        <div id="colorHSV">HSV = hsv(0, 0, 0)</div>
+        <div id="rgbBars">
+            <div class="bar">
+                <div id="rBarFill" class="barFill" style="width: 0; background-color: red;"></div>
+            </div>
+            <div class="bar">
+                <div id="gBarFill" class="barFill" style="width: 0; background-color: green;"></div>
+            </div>
+            <div class="bar">
+                <div id="bBarFill" class="barFill" style="width: 0; background-color: blue;"></div>
+            </div>
+        </div>
+        <div id="hsvBars">
+            <div class="bar">
+                <div id="hBarFill" class="barFill" style="width: 0; background-color: orange;"></div>
+            </div>
+            <div class="bar">
+                <div id="sBarFill" class="barFill" style="width: 0; background-color: yellow;"></div>
+            </div>
+            <div class="bar">
+                <div id="vBarFill" class="barFill" style="width: 0; background-color: purple;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+
+    <script>
+        // Configuración básica de la escena, cámara y renderizador
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Crear geometría y material para el cubo
+        const geometry = new THREE.BoxGeometry();
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x00ff00,
+        });
+        const cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
+
+        camera.position.z = 5;
+
+        // Variables para controlar la interacción del mouse
+        let isMouseDown = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let targetZoom = camera.position.z; // Zoom deseado para hacer el movimiento gradual
+        const zoomSpeed = 0.01; // Velocidad de transición del zoom
+
+        // Variables para control de colores y tiempo
+        let colorPattern = "random"; // Patrón actual de colores
+        let timeMultiplier = 10; // Multiplicador de tiempo ajustable con el slider
+        let gradientTime = 0; // Para el gradiente cíclico
+        let hslHue = 0; // Para el patrón HSL
+        let pastelHue = 0; // Para el patrón de colores pastel
+        let toneIndex = 0; // Para el patrón de colores por tonos
+
+        // Manejar eventos del mouse
+        const onMouseDown = (event) => {
+            isMouseDown = true;
+            previousMousePosition = {
+                x: event.clientX,
+                y: event.clientY,
+            };
+        };
+
+        const onMouseMove = (event) => {
+            if (!isMouseDown) return;
+
+            const deltaMove = {
+                x: event.clientX - previousMousePosition.x,
+                y: event.clientY - previousMousePosition.y,
+            };
+
+            // Rotar el cubo basándonos en el movimiento del mouse
+            const rotationSpeed = 0.005;
+            cube.rotation.y += deltaMove.x * rotationSpeed;
+            cube.rotation.x += deltaMove.y * rotationSpeed;
+
+            previousMousePosition = {
+                x: event.clientX,
+                y: event.clientY,
+            };
+        };
+
+        const onMouseUp = () => {
+            isMouseDown = false;
+        };
+
+        // Manejar el zoom de manera gradual con el scroll del mouse
+        const onMouseWheel = (event) => {
+            targetZoom += event.deltaY * 0.01; // Actualizar el objetivo del zoom
+
+            // Limitar la distancia de la cámara
+            targetZoom = Math.max(2, Math.min(10, targetZoom));
+        };
+
+        // Función para generar colores aleatorios
+        const getRandomColor = () => {
+            const randomColor = Math.floor(Math.random() * 16777215);
+            return `#${randomColor.toString(16).padStart(6, '0')}`; // Asegurarse de que siempre tenga 6 caracteres
+        };
+
+        // Función para generar colores cíclicos usando sin() para gradientes suaves
+        const getGradientColor = () => {
+            gradientTime += 0.02 * timeMultiplier / 255; // Velocidad ajustable por el usuario
+            const r = Math.floor((Math.sin(gradientTime) + 1) * 127);
+            const g = Math.floor((Math.sin(gradientTime + 2) + 1) * 127);
+            const b = Math.floor((Math.sin(gradientTime + 4) + 1) * 127);
+            return { r, g, b };
+        };
+
+        // Función para generar colores HSL
+        const getHSLColor = () => {
+            hslHue += 1 * timeMultiplier / 255; // Incrementar el matiz
+            if (hslHue >= 360) hslHue = 0; // Reiniciar el matiz
+
+            const rgb = hslToRgb(hslHue, 1, 0.5); // Convertir HSL a RGB
+            return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`; // Color en formato RGB
+        };
+
+        // Conversión de HSL a RGB
+        const hslToRgb = (h, s, l) => {
+            let r, g, b;
+
+            if (s === 0) {
+                r = g = b = l; // Achromatic
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1 / 6) return p + (q - p) * 6 * t;
+                    if (t < 1 / 2) return q;
+                    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                    return p;
+                }
+
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h / 360 + 1 / 3);
+                g = hue2rgb(p, q, h / 360);
+                b = hue2rgb(p, q, h / 360 - 1 / 3);
+            }
+
+            return {
+                r: Math.round(r * 255),
+                g: Math.round(g * 255),
+                b: Math.round(b * 255)
+            };
+        };
+
+        // Función para generar colores por tonos
+        const getToneColor = () => {
+            toneIndex = (toneIndex + 1) % 360; // Cíclico entre 0-360
+            const rgb = hslToRgb(toneIndex, 1, 0.5); // Convertir HSL a RGB
+            return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`; // Retornar color en formato RGB
+        };
+
+        // Función para generar colores pastel
+        const getPastelColor = () => {
+            pastelHue += 1 * timeMultiplier / 255; // Incrementar el matiz
+            if (pastelHue >= 360) pastelHue = 0; // Reiniciar el matiz
+            
+            const rgb = hslToRgb(pastelHue, 0.3, 0.8); // Color pastel con saturación 30% y luminosidad 80%
+            return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`; // Color pastel
+        };
+
+        // Función para actualizar el color del cubo
+        const updateColor = () => {
+            let currentColor;
+            switch (colorPattern) {
+                case "random":
+                    currentColor = getRandomColor();
+                    break;
+                case "hsl":
+                    currentColor = getHSLColor();
+                    break;
+                case "gradient":
+                    const { r, g, b } = getGradientColor();
+                    currentColor = `rgb(${r}, ${g}, ${b})`;
+                    break;
+                case "tone":
+                    currentColor = getToneColor();
+                    break;
+                case "pastel":
+                    currentColor = getPastelColor();
+                    break;
+            }
+
+            cube.material.color.set(currentColor);
+            updateColorInfo(currentColor); // Actualiza la información del color
+            updatePatternInfo(); // Actualiza la información del patrón
+        };
+
+        // Función para actualizar el título y la descripción del patrón
+        const updatePatternInfo = () => {
+            const patternTitle = document.getElementById("patternTitle");
+            const patternDescription = document.getElementById("patternDescription");
+
+            switch (colorPattern) {
+                case "random":
+                    patternTitle.textContent = "Patrón: Colores Aleatorios";
+                    patternDescription.textContent = "Genera colores completamente aleatorios.";
+                    break;
+                case "hsl":
+                    patternTitle.textContent = "Patrón: Colores HSL";
+                    patternDescription.textContent = "Cambia el matiz de forma continua a través del espectro de colores.";
+                    break;
+                case "gradient":
+                    patternTitle.textContent = "Patrón: Gradiente Cíclico";
+                    patternDescription.textContent = "Colores que cambian suavemente usando funciones matemáticas.";
+                    break;
+                case "tone":
+                    patternTitle.textContent = "Patrón: Colores por Tonos";
+                    patternDescription.textContent = "Cambia el color en función de un ciclo de tonos.";
+                    break;
+                case "pastel":
+                    patternTitle.textContent = "Patrón: Colores Pastel";
+                    patternDescription.textContent = "Genera colores suaves y claros.";
+                    break;
+            }
+        };
+
+        // Función para actualizar la información de color
+        const updateColorInfo = (color) => {
+            // Convertir el color a RGBA
+            let rgba;
+            if (color.startsWith('#')) {
+                rgba = hexToRgba(color);
+            } else {
+                rgba = rgbToRgba(color);
+            }
+
+            const hsv = rgbToHsv(rgba.r, rgba.g, rgba.b);
+            
+            document.getElementById("colorRGBA").textContent = `RGBA = rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${rgba.a})`;
+            document.getElementById("colorHSV").textContent = `HSV = hsv(${hsv.h}, ${hsv.s}, ${hsv.v})`;
+
+            // Actualizar gráficos de barras RGB
+            document.getElementById("rBarFill").style.width = `${(rgba.r / 255) * 100}%`;
+            document.getElementById("gBarFill").style.width = `${(rgba.g / 255) * 100}%`;
+            document.getElementById("bBarFill").style.width = `${(rgba.b / 255) * 100}%`;
+
+            // Actualizar gráficos de barras HSV
+            document.getElementById("hBarFill").style.width = `${(hsv.h / 360) * 100}%`;
+            document.getElementById("sBarFill").style.width = `${(hsv.s / 100) * 100}%`;
+            document.getElementById("vBarFill").style.width = `${(hsv.v / 100) * 100}%`;
+        };
+
+        // Función para convertir hex a RGBA
+        const hexToRgba = (hex) => {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return { r, g, b, a: 1 }; // Alpha fijo en 1
+        };
+
+        // Función para convertir RGB a RGBA
+        const rgbToRgba = (rgb) => {
+            const match = rgb.match(/\d+/g);
+            return { r: parseInt(match[0]), g: parseInt(match[1]), b: parseInt(match[2]), a: 1 };
+        };
+
+        // Función para convertir RGB a HSV
+        const rgbToHsv = (r, g, b) => {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h, s, v = max;
+            const d = max - min;
+            s = max === 0 ? 0 : d / max;
+
+            if (max === min) {
+                h = 0; // Achromatic
+            } else {
+                switch (max) {
+                    case r:
+                        h = (g - b) / d + (g < b ? 6 : 0);
+                        break;
+                    case g:
+                        h = (b - r) / d + 2;
+                        break;
+                    case b:
+                        h = (r - g) / d + 4;
+                        break;
+                }
+                h /= 6;
+            }
+            return { h: Math.round(h * 360), s: Math.round(s * 100), v: Math.round(v * 100) };
+        };
+
+        // Animación del cubo
+        const animate = () => {
+            requestAnimationFrame(animate);
+
+            // Interpolar el zoom de manera suave
+            camera.position.z += (targetZoom - camera.position.z) * zoomSpeed;
+
+            // Actualizar el color del cubo
+            updateColor();
+
+            renderer.render(scene, camera);
+        };
+
+        // Mostrar alerta al cargar la página
+        alert(
+            "¡Bienvenido! El cubo cambia de color rápidamente, casi de manera psicodélica. Ajusta la velocidad del cambio de color usando el control deslizante."
+        );
+
+        // Eventos
+        window.addEventListener("mousedown", onMouseDown, false);
+        window.addEventListener("mousemove", onMouseMove, false);
+        window.addEventListener("mouseup", onMouseUp, false);
+        window.addEventListener("wheel", onMouseWheel, false);
+        document.getElementById("colorPattern").addEventListener("change", (event) => {
+            colorPattern = event.target.value;
+            updateColorInfo(cube.material.color.getStyle()); // Actualizar la información de color al cambiar de patrón
+        });
+        document.getElementById("timeControl").addEventListener("input", (event) => {
+            timeMultiplier = event.target.value;
+        });
+
+        animate();
+    </script>
+</body>
+</html>
+

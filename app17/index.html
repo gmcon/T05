@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulación de Árbol con Three.js</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Escena
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x87CEEB); // Color de fondo (cielo claro)
+        document.body.appendChild(renderer.domElement);
+
+        // Luz ambiental para iluminar toda la escena
+        const ambientLight = new THREE.AmbientLight(0x404040); // Luz ambiental suave
+        scene.add(ambientLight);
+
+        // Luz direccional
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 10, 7.5).normalize();
+        scene.add(directionalLight);
+
+        // Tronco del árbol
+        const trunkGeometry = new THREE.CylinderGeometry(0.2, 0.3, 2, 8);
+        const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+        const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+        trunk.position.y = 1; // Levantar el tronco
+        scene.add(trunk);
+
+        // Crear ramas
+        function createBranch(x, y, z, rotation) {
+            const branchGeometry = new THREE.CylinderGeometry(0.05, 0.1, 1, 8);
+            const branchMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+            const branch = new THREE.Mesh(branchGeometry, branchMaterial);
+            branch.position.set(x, y, z);
+            branch.rotation.z = rotation; // Rotar la rama
+            scene.add(branch);
+            return branch;
+        }
+
+        // Añadir varias ramas
+        const branches = [];
+        branches.push(createBranch(0.1, 1.5, 0, -Math.PI / 4)); // Rama derecha
+        branches.push(createBranch(-0.1, 1.5, 0, Math.PI / 4)); // Rama izquierda
+        branches.push(createBranch(0.5, 1.2, 0, -Math.PI / 6)); // Rama derecha media
+        branches.push(createBranch(-0.5, 1.2, 0, Math.PI / 6)); // Rama izquierda media
+        branches.push(createBranch(0.3, 0.8, 0, -Math.PI / 3)); // Rama derecha baja
+        branches.push(createBranch(-0.3, 0.8, 0, Math.PI / 3)); // Rama izquierda baja
+
+        // Función para añadir hojas (esferas verdes)
+        const leaves = [];
+        function addLeavesToBranch(branch, count, isOrange = false) {
+            const leafGeometry = new THREE.SphereGeometry(0.05, 32, 32); // Tamaño de hoja reducido
+            const leafMaterial = new THREE.MeshStandardMaterial({ color: isOrange ? 0xFFA500 : 0x228B22 });
+            
+            for (let i = 0; i < count; i++) {
+                const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+                // Posicionar las hojas en el tronco y ramas
+                leaf.position.set(
+                    branch.position.x + (Math.random() - 0.5) * 0.5,
+                    branch.position.y + (Math.random() * 0.2 + 0.3), // Ajuste para que estén más bajas
+                    branch.position.z + (Math.random() - 0.5) * 0.5
+                );
+                leaf.userData = { falling: false, isOrange }; // Estado de la hoja
+                scene.add(leaf);
+                leaves.push(leaf); // Guardar referencia a las hojas
+            }
+        }
+
+        // Añadir más hojas a las ramas
+        branches.forEach(branch => {
+            const leafCount = Math.floor(Math.random() * 50) + 50; // Entre 50 y 100 hojas por rama
+            addLeavesToBranch(branch, leafCount);
+        });
+
+        // Añadir hojas adicionales en la parte inferior del tronco
+        for (let i = 0; i < 100; i++) { // Agregar muchas hojas en la parte inferior
+            const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.05, 32, 32), new THREE.MeshStandardMaterial({ color: 0x228B22 }));
+            leaf.position.set(
+                trunk.position.x + (Math.random() - 0.5) * 0.7,
+                trunk.position.y - Math.random() * 0.5, // Hojas más bajas
+                trunk.position.z + (Math.random() - 0.5) * 0.7
+            );
+            scene.add(leaf);
+            leaves.push(leaf); // Agregar nueva hoja al array
+        }
+
+        // Crear pasto en la base del árbol
+        function createGrass() {
+            const grassGeometry = new THREE.PlaneGeometry(10, 10);
+            const grassMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+            const grass = new THREE.Mesh(grassGeometry, grassMaterial);
+            grass.rotation.x = -Math.PI / 2; // Girar el plano
+            grass.position.y = 0; // Posicionar el pasto en el suelo
+            scene.add(grass);
+        }
+
+        // Crear el pasto
+        createGrass();
+
+        // Viento
+        let windDirection = new THREE.Vector3(0, 0, 0);
+        function changeWindDirection() {
+            windDirection.set((Math.random() - 0.5) * 2, 0, (Math.random() - 0.5) * 2).normalize();
+        }
+        changeWindDirection();
+        setInterval(changeWindDirection, 5000); // Cambiar dirección del viento cada 5 segundos
+
+        // Simular caída de hojas
+        function simulateLeafFall(leaf) {
+            // Caer
+            leaf.userData.falling = true; // Marcar hoja como en caída
+
+            const fallAnimation = setInterval(() => {
+                if (leaf.position.y > -1) {
+                    leaf.position.y -= 0.05; // Ajustar velocidad de caída
+                    // Mover hoja en la dirección del viento
+                    leaf.position.x += windDirection.x * 0.02;
+                    leaf.position.z += windDirection.z * 0.02;
+                } else {
+                    clearInterval(fallAnimation);
+                    scene.remove(leaf); // Eliminar hoja caída
+                    // Crear una nueva hoja en cualquier parte del tronco o ramas
+                    const newLeaf = new THREE.Mesh(new THREE.SphereGeometry(0.05, 32, 32), new THREE.MeshStandardMaterial({ color: getNewLeafColor(leaf) }));
+                    const randomBranch = branches[Math.floor(Math.random() * branches.length)];
+                    newLeaf.position.set(
+                        randomBranch.position.x + (Math.random() - 0.5) * 0.5,
+                        randomBranch.position.y + (Math.random() * 0.3 + 0.3), // Ajustar para que aparezca más baja
+                        randomBranch.position.z + (Math.random() - 0.5) * 0.5
+                    );
+                    scene.add(newLeaf);
+                    leaves.push(newLeaf); // Agregar nueva hoja al array
+                }
+            }, 100);
+        }
+
+        // Función para obtener el nuevo color de la hoja
+        function getNewLeafColor(leaf) {
+            const currentColor = leaf.material.color;
+            const newColor = new THREE.Color(
+                Math.min(currentColor.r + 0.05, 1), // Asegura que no exceda 1
+                Math.max(currentColor.g - 0.05, 0), // Asegura que no caiga por debajo de 0
+                0
+            );
+            return newColor;
+        }
+
+        // Al hacer click en una hoja
+        function onClick(event) {
+            const mouse = new THREE.Vector2(
+                (event.clientX / window.innerWidth) * 2 - 1,
+                -(event.clientY / window.innerHeight) * 2 + 1
+            );
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(leaves);
+
+            if (intersects.length > 0) {
+                const intersectedLeaf = intersects[0].object;
+                simulateLeafFall(intersectedLeaf); // Hacer que caiga la hoja
+            }
+        }
+
+        // Generar hoja cada 2 segundos
+        setInterval(() => {
+            const randomLeaf = leaves[Math.floor(Math.random() * leaves.length)];
+            if (!randomLeaf.userData.falling) {
+                simulateLeafFall(randomLeaf);
+            }
+        }, 2000);
+
+        // Animación
+        function animate() {
+            requestAnimationFrame(animate);
+            directionalLight.position.copy(camera.position); // Mantener luz estática con la cámara
+            scene.rotation.y += 0.01; // Velocidad de rotación
+            renderer.render(scene, camera);
+        }
+
+        camera.position.z = 5; // Posición de la cámara
+        animate();
+
+        // Escuchar eventos de clic
+        window.addEventListener('click', onClick);
+    </script>
+</body>
+</html>

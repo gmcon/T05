@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cubo 3D girando en su eje y musical</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+        canvas { display: block; }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        #info div {
+            margin-bottom: 5px;
+        }
+        #audio-upload {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+        }
+        #message {
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            color: red;
+            font-family: Arial, sans-serif;
+            display: none; /* Oculto por defecto */
+        }
+        #Etiqueta {
+            position: absolute;
+            bottom: 30px;
+            left: 10px;
+            color: white;
+            background-color: red; 
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            padding: 10px 20px;
+            font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+        #animacion{
+            position: absolute;
+            bottom: 100px;
+            left: 10px;
+            color: white;
+            background-color: green; 
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            padding: 10px 20px;
+        }
+        #animacion:hover {
+            background-color: rgb(0, 99, 0); /* Color más fuerte al hacer hover */
+            border: 1px solid  rgb(1, 67, 1); /* Aparece un borde blanco */
+        }      
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  <div id="info">
+    <div id="file-name">Archivo: Ninguno</div>
+    <div id="time">Tiempo: 0:00 / 0:00</div>
+  </div>
+  <div id="message">Fin de la reproducción</div>
+  <input type="file" id="audio-upload" accept="audio/*">
+  <p id="Etiqueta">Suba un Audio / Música ↓ </p>
+  <button id="animacion">Animación Desactivada</button>
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="script.js"></script>
+  <script src="service-worker.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function(registration) {
+            console.log('Service Worker registered with scope:', registration.scope);
+          }, function(err) {
+            console.log('Service Worker registration failed:', err);
+          });
+      });
+    }
+  </script>
+  
+</body>
+</html>

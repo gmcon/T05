@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Círculo de Triángulos Giratorios</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="controls">
+        <label>Velocidad de Rotación: <span id="rotation-speed-label">0.01</span></label>
+        <input type="range" id="rotation-speed" min="0" max="0.1" step="0.001" value="0.01">
+        
+        <label>Velocidad de Movimiento en el Círculo: <span id="circle-speed-label">0.01</span></label>
+        <input type="range" id="circle-speed" min="0" max="0.1" step="0.001" value="0.01">
+
+        <label>Velocidad de Cambio de Color: <span id="color-speed-label">0.01</span></label>
+        <input type="range" id="color-speed" min="0" max="0.1" step="0.001" value="0.01">
+
+        <button id="toggle-pattern">Alternar Patrón de Color</button>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

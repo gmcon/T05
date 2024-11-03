@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejemplos de Aplicaciones</title>
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+        }
+        .sidebar {
+            width: 30%;
+            overflow-y: scroll;
+            border-right: 2px solid #ccc;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+        .sidebar li {
+            padding: 5px;
+            cursor: pointer;
+        }
+        .sidebar li.active {
+            background-color: lightgreen;
+        }
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+        .main-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h3>Lista de Aplicaciones</h3>
+        <ul id="appList">
+            <!-- Generar frases desde un arreglo -->
+            <script>
+                const appDescriptions = [
+                    "01 Muchos cubos girando alrededor  de su propio eje", // alvarez yanina
+                    "02 Esfera de material reflectante que refleja luces", // alvarez vicente
+                    "03 Pirámide moviéndose lentamente de un lado a otro", // araya
+                                                                           // burgos
+                                                                           // cancino
+                    "06 Un gráfico con barras 3D, con alturas cambiantes", // cotal
+                    "07 Esfera que  rebota al interior de cubo invisible", // curihual
+                    "08 Casa simple construida usando geometrías básicas", // curipan
+                    "09 Líneas interconectadas entre si en un espacio 3D", // escobar
+                    "10 Esfera gira  mientras es iluminada luz ambiental", // garces
+                                                                           // gutierrez
+                    "12 Un sistema  de partículas  muy básico moviéndose", // huaiquinao
+                                                                           // huenuman
+                    "14 Reloj con esferas para horas, minutos y segundos", // llanca
+                                                                           // monsalvez
+                                                                           // mora
+                    "17 Esfera con una textura  que es el mapa del mundo", // muñoz
+                    "18 Plano con ondulación animada, simulando una olas", // parada
+                    "19 Cubo que cambia de colores de una forma dinámica", // parra
+                    "20 Objeto que cae por gravedad en un plano simulado", // pichara
+                    "21 Una carretera 3D  con un vehículo  en movimiento", // ramirez
+                                                                           // riquelme
+                                                                           // sandoval
+                    "24 Modelo básico de un puente de geometrías simples", // santana
+                    "25 Un árbol muy estilizado cuyas  hojas son esferas", // sepulveda
+                    "26 Un modelo simple de sistema solar usando esferas", // sevilla
+                    "27 Un círculo compuesto  por triángulos  giratorios", // suarez
+                                                                           // ulloa
+                    "29 Gráfico de líneas 3D  actualizado en tiempo real", // valdes
+                    "30 Un péndulo  simple que oscila de un lado al otro", // valenzuela
+                    "31 Texto 3D que se desplaza a través de la pantalla", // vallejo
+                    "32 Torre de cubos que se derrumban al hacerles Clic", // zapata
+                ];
+
+                appDescriptions.forEach((description, index) => {
+                    document.write(`<li onclick="loadApp('app${index + 1}/index.html', this)">${description}</li>`);
+                });
+            </script>
+        </ul>
+    </div>
+    <div class="main-content">
+        <iframe id="appViewer" src=""></iframe>
+    </div>
+
+    <script>
+        function loadApp(appPath, element) {
+            // Cambiar la fuente del iframe
+            document.getElementById('appViewer').src = appPath;
+
+            // Remover clase activa de todas las frases
+            const items = document.querySelectorAll('.sidebar li');
+            items.forEach(item => item.classList.remove('active'));
+
+            // Agregar clase activa al elemento clicado
+            element.classList.add('active');
+        }
+    </script>
+</body>
+</html>
